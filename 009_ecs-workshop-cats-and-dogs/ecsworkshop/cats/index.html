@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Welcome to Cats and Dogs DemoGo</title>
+<title>ju! Welcome to Cats and Dogs DemoGo</title>
 <style>
     body {
             font-family: Helvetica, Arial, sans-serif;
@@ -17,18 +17,24 @@
 <h1>This is what love looks like</h1>
 <script language = "javascript">
         var imgArray = new Array();
-        var bucket = "https://ecs-demogo-pictures.s3.ap-northeast-2.amazonaws.com/cat/"
-        var ext = ".jpeg"
-        for(i=0;i<10;i++){
-            imgArray[i] = (bucket+i+ext);
+        var bucket = "https://ecs-demogo-pictures.s3.ap-northeast-2.amazonaws.com/cat/";
+        var ext = ".jpeg";
+        for (var i = 0; i < 10; i++) {
+            imgArray[i] = bucket + i + ext;
         }
-        function showImage(){
-            var imgNum = Math.round(Math.random()*9);
+        function showImage() {
             var objImg = document.getElementById("introImg");
+            var imgNum = Math.floor(Math.random() * imgArray.length);
             objImg.src = imgArray[imgNum];
+            objImg.onerror = function () {
+                if (this.dataset.fallback !== "true") {
+                    this.dataset.fallback = "true";
+                    this.src = "https://placecats.com/640/480";
+                }
+            };
         }
     </script>
 <body onload = "showImage()">
-        <img id = "introImg" border="0">
+        <img id = "introImg" border="0" alt="Cat">
     </body>
 </html>
