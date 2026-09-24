@@ -6,7 +6,7 @@ phases:
       - echo Logging in to Amazon ECR...
       - export AWS_REGION="us-east-1" 
       - export AWS_ACCOUNT_ID="174797531245"
-      - export IMAGE_REPO_NAME="dogs"
+      - export IMAGE_REPO_NAME="dogs-nlb"
       - aws --version
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       - export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME
@@ -25,6 +25,6 @@ phases:
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - echo Writing image definitions file...
-      - printf '[{"name":"dogs","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > "$CODEBUILD_SRC_DIR/imagedefinitions.json"
+      - printf '[{"name":"dogs-nlb","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > "$CODEBUILD_SRC_DIR/imagedefinitions.json"
 artifacts:
   files: imagedefinitions.json
