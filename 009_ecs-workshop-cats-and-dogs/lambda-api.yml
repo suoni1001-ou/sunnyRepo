@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'GET /dogs API backed by AWS Lambda'
+
+Parameters:
+  Project:
+    Type: String
+    Default: demogo
+  Env:
+    Type: String
+    Default: dev
+
+Resources:
+  DogsFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${Project}-${Env}-dogs-lambda-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: WriteLambdaLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*'
+      Tags:
+        - Key: Project
+          Value: !Ref Project
+        - Key: Env
+          Value: !Ref Env
+
+  DogsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${Project}-${Env}-dogs'
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt DogsFunctionRole.Arn
+      Timeout: 5
+      MemorySize: 128
+      Code:
+        ZipFile: |
+          import json
+
+          def handler(event, context):
+              return {
+                  "statusCode": 200,
+                  "headers": {
+                      "content-type": "application/json"
+                  },
+                  "body": json.dumps({"animal": "dog"})
+              }
+      Tags:
+        - Key: Project
+          Value: !Ref Project
+        - Key: Env
+          Value: !Ref Env
+
+  DogsApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${Project}-${Env}-dogs-api'
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+        AllowOrigins:
+          - '*'
+      Tags:
+        Project: !Ref Project
+        Env: !Ref Env
+
+  DogsIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref DogsApi
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      IntegrationUri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DogsFunction.Arn}/invocations'
+      PayloadFormatVersion: '2.0'
+
+  DogsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DogsApi
+      RouteKey: 'GET /dogs'
+      Target: !Sub 'integrations/${DogsIntegration}'
+
+  DogsStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref DogsApi
+      StageName: '$default'
+      AutoDeploy: true
+
+  DogsApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DogsFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${DogsApi}/*/*'
+
+Outputs:
+  DogsApiUrl:
+    Description: 'Invoke URL for GET /dogs'
+    Value: !Sub 'https://${DogsApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/dogs'
+  DogsFunctionName:
+    Description: 'Lambda function name'
+    Value: !Ref DogsFunction
