@@ -1,4 +1,6 @@
 import os
+from html import escape
+
 import pymysql
 from flask import Flask, render_template_string, request
 
@@ -28,21 +30,34 @@ def dogs():
         with get_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS dog_visits (
+                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                        path VARCHAR(255) NOT NULL,
+                        client_ip VARCHAR(45),
+                        visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+                cur.execute(
                     "INSERT INTO dog_visits (path, client_ip) VALUES (%s, %s)",
                     ("/dogs", client_ip)
                 )
                 cur.execute("SELECT COUNT(*) AS cnt FROM dog_visits")
                 count = cur.fetchone()["cnt"]
+        status = "Aurora 接続成功"
     except Exception as e:
-        count = "DB接続エラー"
+        count = "取得できません"
+        status = "Aurora 接続エラー"
         print("DB ERROR:", e)
 
     html = f"""
     <html>
       <body style="font-family:Arial; text-align:center; padding:30px;">
         <h1>Dogs</h1>
-        <p>今回の workshop では dogs から Aurora にアクセスしています。</p>
-        <p>総アクセス数: <strong>{count}</strong></p>
+        <p>{escape(status)}</p>
+        <p>/dogs のアクセスで Aurora の dog_visits に 1 行追加しました。</p>
+        <p>トータル件数: <strong>{escape(str(count))}</strong></p>
       </body>
     </html>
     """
