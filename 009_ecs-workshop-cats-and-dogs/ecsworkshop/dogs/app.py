@@ -13,17 +13,25 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 
 def get_conn():
-    return pymysql.connect(
+    if not DB_NAME:
+        raise RuntimeError("DB_NAME is not configured")
+
+    conn = pymysql.connect(
         host=DB_HOST,
         port=DB_PORT,
         user=DB_USER,
         password=DB_PASSWORD,
-        database=DB_NAME,
         cursorclass=pymysql.cursors.DictCursor,
         autocommit=True
     )
+    database_name = DB_NAME.replace("`", "``")
+    with conn.cursor() as cur:
+        cur.execute(f"CREATE DATABASE IF NOT EXISTS `{database_name}`")
+    conn.select_db(DB_NAME)
+    return conn
 
-@app.route("/dogs")
+@app.route("/dogs", strict_slashes=False)
+@app.route("/dogs/", strict_slashes=False)
 def dogs():
     client_ip = request.remote_addr
     try:
