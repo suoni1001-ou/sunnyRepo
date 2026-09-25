@@ -57,7 +57,7 @@ def dogs():
     except Exception as e:
         count = "取得できません"
         status = "Aurora 接続エラー"
-        print("DB ERROR:", e)
+        app.logger.exception("DB ERROR")
 
     html = f"""
     <html>
